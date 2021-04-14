@@ -1,4 +1,4 @@
-from src.pbs_utils import *
+from pbs_utils import *
 
 """
 Example of using a script to run jobs in free nodes
