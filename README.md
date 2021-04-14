@@ -13,7 +13,7 @@ $ cd pbs-utils
 $ pip install .
 ```
 
-# calling the functions:
+### Calling the functions:
 ```
 from pbs_utils import *
 ```
