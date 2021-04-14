@@ -4,6 +4,7 @@ This package is for submitting, running and monitoring jobs in the PBS system fr
 
 #### Requirements:
 - petname
+- pandas
 
 ## Getting started
 ### install from source 
