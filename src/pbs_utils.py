@@ -69,38 +69,50 @@ def nodelist():
             column: status:
                 The PBS status of the job: R - running, Q - waiting in the queue, S - suspended
     """
-    process = sp.Popen(['nodelist -g'], stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
+    process = sp.Popen(['pbsnodes -av'], stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
     out, err = process.communicate()
-    lines, types, status, use_cores, cores, use_memory, mem = [], [], [], [], [], [], []
+    lines, types, status, used_cores, cores, used_memory, mem = [], [], [], [], [], [], []
+    nodes_list = []
+    node = ''
     for l in out.splitlines():
         l = l.decode('utf-8')
-        type_match = re.search(r'(\w\w\w)\d\d\d', l)
+        node += l
+        if l == '':
+            nodes_list.append(node)
+            node = ''
 
-        cpu_match = re.search(r'(\d{1,2}): (\d\d)', l)
+    for node in nodes_list:
+        type_match = re.search(r'(\w\w\w)\d\d\d', node)
 
-        mem_match = re.search(r'(\d{1,3}):\s+(\d{1,3}) gb', l)
+        cpu_match = re.search(r'resources_available.ncpus = (\w+)', node)
+        used_cpu_match = re.search(r'resources_assigned.ncpus = (\w+)', node)
 
-        status_match = re.search(r'[|] ([a-z\-]+ [a-z]*)', l)
+        mem_match = re.search(r'resources_available.mem = (\w+)kb', node)
+        used_mem_match = re.search(r'resources_assigned.mem = (\w+)kb', node)
+
+        status_match = re.search(r'state = ([a-z\-]+ [a-z]*)', node)
         if type_match and cpu_match and mem_match and status_match:
             type = type_match.group(1)
-            use_cpu = cpu_match.group(1)
-            total_cpu = cpu_match.group(2)
-            use_mem = mem_match.group(1)
-            total_mem = mem_match.group(2)
+            total_cpu = int(cpu_match.group(1))
+            used_cpu = int(used_cpu_match.group(1))
+            total_mem = int(int(mem_match.group(1))/1024/1024)
+            used_mem = int(int(used_mem_match.group(1))/1024/1024)
             node_status = status_match.group(1).strip()
+            if node_status == 'free' and used_cpu != 0:
+                node_status = 'partially free'
 
             types.append(type)
             status.append(node_status)
             cores.append(total_cpu)
             mem.append(total_mem)
-            use_cores.append(use_cpu)
-            use_memory.append(use_mem)
+            used_cores.append(used_cpu)
+            used_memory.append(used_mem)
     df = pd.DataFrame(dict(
         type=types,
         cores=cores,
-        use_cores=use_cores,
+        used_cores=used_cores,
         memory=mem,
-        use_memory=use_memory,
+        used_memory=used_memory,
         status=status
     ))
     return df
@@ -517,4 +529,5 @@ def reset_fails(df, n=3, reset_callback=None):
                 df = reset_callback(df, i)
             name = df.loc[i, 'name']
             print(f'restring: {name}')
+
 
