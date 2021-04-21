@@ -4,6 +4,7 @@ This package is for submitting, running and monitoring jobs in the PBS system fr
 
 #### Requirements:
 - petname
+- pandas
 
 ## Getting started
 ### install from source 
@@ -11,5 +12,10 @@ This package is for submitting, running and monitoring jobs in the PBS system fr
 $ git clone https://github.com/ozmendelsohn/pbs-utils
 $ cd pbs-utils
 $ pip install .
+```
+
+### Calling the functions:
+```
+from pbs_utils import *
 ```
 
