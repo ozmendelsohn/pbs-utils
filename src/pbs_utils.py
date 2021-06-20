@@ -56,7 +56,7 @@ def unique_name(name_size=3, rand_size=4):
 
 def nodelist():
     """
-    Get a pandas DataFrame object contain the utilization status of the nodes in the ChemFarm cluster.
+    Get a pandas DataFrame object contain the utilization status of the nodes in the PBS cluster.
     _______
     Returns
     -------
@@ -95,8 +95,8 @@ def nodelist():
             type = type_match.group(1)
             total_cpu = int(cpu_match.group(1))
             used_cpu = int(used_cpu_match.group(1))
-            total_mem = int(int(mem_match.group(1))/1024/1024)
-            used_mem = int(int(used_mem_match.group(1))/1024/1024)
+            total_mem = int(int(mem_match.group(1)) / 1024 / 1024)
+            used_mem = int(int(used_mem_match.group(1)) / 1024 / 1024)
             node_status = status_match.group(1).strip()
             if node_status == 'free' and used_cpu != 0:
                 node_status = 'partially free'
@@ -214,16 +214,16 @@ def pbs_file(execute_line, **pbs_kwargs):
         walltime = pbs_kwargs['walltime']
         file_text += f'PBS -l walltime={walltime}\n'
 
-    file_text += 'ulimit -s unlimited\n' \
-                 'cd $PBS_O_WORKDIR\n' \
-                 'set -e\n' \
-                 'JOBID=$( echo $PBS_JOBID | sed \'s/\.pbs01//\' )\n' \
-                 'JOBID=${JOBID%?};\n' \
-                 'JOBID=${JOBID%?};\n' \
-                 'JOBID=${JOBID%?};\n' \
-                 'JOBID=${JOBID%?};\n' \
-                 'ulimit -s\n' \
-                 'source ~/.bash_profile\n'
+    # file_text += 'ulimit -s unlimited\n'
+    file_text += 'cd $PBS_O_WORKDIR\n'
+    file_text += 'set -e\n'
+    file_text += 'JOBID=$( echo $PBS_JOBID | sed \'s/\.pbs01//\' )\n'
+    file_text += 'JOBID=${JOBID%?};\n'
+    file_text += 'JOBID=${JOBID%?};\n'
+    file_text += 'JOBID=${JOBID%?};\n'
+    file_text += 'JOBID=${JOBID%?};\n'
+    # file_text += 'ulimit -s\n'
+    file_text += 'source ~/.bash_profile\n'
     file_text += execute_line + '>>' + log_file + '\n'
     file_text += f'echo 1 > {name}.fin\n'
     full_name = path + name + '.pbs'
@@ -325,7 +325,10 @@ def submit_static_job_df(df: pd.Series):
     execute_line = df['execute_lines']
     parser_kwargs = df['parser_kwargs'] if type(df['parser_kwargs']) == dict else {}
     for k, v in parser_kwargs.items():
-        execute_line += f' --{k}={v}'
+        if isinstance(v, list):
+            execute_line += ' --{} {}'.format(k, ' '.join(map(str, v)))
+        else:
+            execute_line += f' --{k}={v}'
     pbs_kwargs = df['pbs_kwargs'] if type(df['pbs_kwargs']) == dict else {}
     run_me = pbs_file(execute_line, **pbs_kwargs)
     print('running: {}'.format(run_me))
@@ -529,5 +532,3 @@ def reset_fails(df, n=3, reset_callback=None):
                 df = reset_callback(df, i)
             name = df.loc[i, 'name']
             print(f'restring: {name}')
-
-
